@@ -2,43 +2,13 @@
  * MyIM3 API Client - Reverse Engineered
  * Based on the MyIM3 web app (myim3app.indosatooredoo.com) API endpoints
  * discovered through network traffic analysis.
- *
- * Flow:
- * 1. sendOtp(phoneNumber) → sends OTP via SMS to the Indosat number
- * 2. verifyOtp(phoneNumber, otp) → verifies OTP, returns access_token
- * 3. getBalance(token) → returns pulsa balance
- * 4. getQuota(token) → returns quota/package details
- * 5. getProfile(token) → returns user profile (name, active period, etc.)
  */
-
 import axios, { AxiosInstance } from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 const BASE_URL = "https://myim3app.indosatooredoo.com/api";
 const APP_VERSION = "82.17.0";
 const PLATFORM = "web";
-
-import axios, { AxiosInstance } from "axios";
-import { HttpsProxyAgent } from "https-proxy-agent"; // Tambahkan baris ini
-
-const BASE_URL = "https://myim3app.indosatooredoo.com/api";
-// ...
-
-class MyIM3ApiClient {
-  private client: AxiosInstance;
-
-  constructor() {
-    const proxyAgent = new HttpsProxyAgent('http://cawik123:cawik123@p.webshare.io:80');
-
-    this.client = axios.create({
-      baseURL: BASE_URL,
-      headers: COMMON_HEADERS,
-      timeout: 30000,
-      httpsAgent: proxyAgent,
-      proxy: false
-    });
-  }
-  
-  // ... fungsi sendOtp biarkan seperti semula ...
 
 // Common headers used across all MyIM3 web app requests
 const COMMON_HEADERS = {
@@ -86,7 +56,7 @@ export interface ActivePackage {
 export interface ProfileInfo {
   name: string;
   phoneNumber: string;
-  accountType: string; // prepaid / postpaid
+  accountType: string;
   activeUntil: string;
   status: string;
 }
@@ -102,20 +72,15 @@ class MyIM3ApiClient {
   private client: AxiosInstance;
 
   constructor() {
+    const proxyAgent = new HttpsProxyAgent("http://cawik123:cawik123@p.webshare.io:80");
+
     this.client = axios.create({
-  baseURL: BASE_URL,
-  headers: COMMON_HEADERS,
-  timeout: 30000,
-  proxy: {
-    protocol: 'http',
-    host: 'p.webshare.io',
-    port: 80,
-    auth: {
-      username: 'cawik123',
-      password: 'cawik123'
-    }
-  }
-});
+      baseURL: BASE_URL,
+      headers: COMMON_HEADERS,
+      timeout: 30000,
+      httpsAgent: proxyAgent,
+      proxy: false,
+    });
   }
 
   /**
@@ -123,16 +88,13 @@ class MyIM3ApiClient {
    */
   async sendOtp(phoneNumber: string): Promise<MyIM3OTPResponse> {
     const normalizedPhone = this.normalizePhone(phoneNumber);
-
     try {
       const response = await this.client.post("/v2/user/otp/send", {
         phone_number: normalizedPhone,
         channel: "sms",
         platform: PLATFORM,
       });
-
       const data = response.data;
-
       if (data?.meta?.status === "success" || data?.status === "success" || response.status === 200) {
         return {
           success: true,
@@ -141,7 +103,6 @@ class MyIM3ApiClient {
           data: data,
         };
       }
-
       return {
         success: false,
         message: data?.meta?.message || data?.message || "Gagal mengirim OTP",
@@ -150,7 +111,6 @@ class MyIM3ApiClient {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errData = error.response?.data;
-        // If 422, phone might already have pending OTP or is not Indosat
         if (error.response?.status === 422 || error.response?.status === 400) {
           return {
             success: false,
@@ -180,30 +140,24 @@ class MyIM3ApiClient {
     sessionToken?: string
   ): Promise<MyIM3TokenResponse> {
     const normalizedPhone = this.normalizePhone(phoneNumber);
-
     try {
       const payload: Record<string, string> = {
         phone_number: normalizedPhone,
         otp: otp.trim(),
         platform: PLATFORM,
       };
-
       if (sessionToken) {
         payload.session_token = sessionToken;
       }
-
       const response = await this.client.post("/v2/user/otp/verify", payload);
       const data = response.data;
-
       const token =
         data?.data?.access_token ||
         data?.access_token ||
         data?.data?.token ||
         data?.token;
-
       const refreshToken =
         data?.data?.refresh_token || data?.refresh_token;
-
       if (token) {
         return {
           success: true,
@@ -214,7 +168,6 @@ class MyIM3ApiClient {
           data: data,
         };
       }
-
       return {
         success: false,
         message: data?.meta?.message || data?.message || "OTP tidak valid",
@@ -250,7 +203,6 @@ class MyIM3ApiClient {
       "x-msisdn": normalizedPhone,
     };
 
-    // Fetch all data in parallel
     const [profileRes, balanceRes, quotaRes] = await Promise.allSettled([
       this.client.get("/v3/user/profile", { headers: authHeaders }),
       this.client.get("/v3/user/balance", { headers: authHeaders }),
@@ -259,7 +211,6 @@ class MyIM3ApiClient {
 
     const rawData: Record<string, unknown> = {};
 
-    // Parse profile
     let profile: ProfileInfo = {
       name: "Pelanggan IM3",
       phoneNumber: phoneNumber,
@@ -267,7 +218,6 @@ class MyIM3ApiClient {
       activeUntil: "-",
       status: "Aktif",
     };
-
     if (profileRes.status === "fulfilled") {
       const pData = profileRes.value.data;
       rawData.profile = pData;
@@ -289,13 +239,11 @@ class MyIM3ApiClient {
       };
     }
 
-    // Parse balance
     let balance: BalanceInfo = {
       balance: "0",
       balanceFormatted: "Rp 0",
       currency: "IDR",
     };
-
     if (balanceRes.status === "fulfilled") {
       const bData = balanceRes.value.data;
       rawData.balance = bData;
@@ -314,15 +262,12 @@ class MyIM3ApiClient {
       };
     }
 
-    // Parse active packages
     let packages: ActivePackage[] = [];
-
     if (quotaRes.status === "fulfilled") {
       const qData = quotaRes.value.data;
       rawData.quota = qData;
       const items = qData?.data?.items || qData?.data || qData?.items || qData || [];
       const itemsArr = Array.isArray(items) ? items : [items];
-
       packages = itemsArr
         .filter(Boolean)
         .map((item: Record<string, unknown>) => {
@@ -342,7 +287,6 @@ class MyIM3ApiClient {
             (item?.unit as string) ||
             (item?.quota_unit as string) ||
             "MB";
-
           return {
             name:
               (item?.package_name as string) ||
@@ -405,7 +349,6 @@ class MyIM3ApiClient {
       });
       const data = response.data;
       const token = data?.data?.access_token || data?.access_token;
-
       if (token) {
         return {
           success: true,
@@ -423,7 +366,6 @@ class MyIM3ApiClient {
 
   /**
    * Normalize Indonesian phone number to E.164-ish format
-   * 08xxxxxxxxxx → 628xxxxxxxxxx
    */
   normalizePhone(phone: string): string {
     const clean = phone.replace(/\D/g, "");
@@ -442,9 +384,8 @@ class MyIM3ApiClient {
   /**
    * Format phone for display
    */
-  formatPhoneDisplay(phone: string): string {
+    formatPhoneDisplay(phone: string): string {
     const norm = this.normalizePhone(phone);
-    // 628xxx → 08xxx
     if (norm.startsWith("62")) {
       return "0" + norm.slice(2);
     }
