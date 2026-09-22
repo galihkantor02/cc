@@ -80,10 +80,19 @@ class MyIM3ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: BASE_URL,
-      headers: COMMON_HEADERS,
-      timeout: 30000,
-    });
+  baseURL: BASE_URL,
+  headers: COMMON_HEADERS,
+  timeout: 30000,
+  proxy: {
+    protocol: 'http',
+    host: 'p.webshare.io',
+    port: 80,
+    auth: {
+      username: 'cawik123',
+      password: 'cawik123'
+    }
+  }
+});
   }
 
   /**
