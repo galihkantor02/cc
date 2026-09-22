@@ -12,6 +12,12 @@
  */
 
 import axios, { AxiosInstance } from "axios";
+
+const BASE_URL = "https://myim3app.indosatooredoo.com/api";
+const APP_VERSION = "82.17.0";
+const PLATFORM = "web";
+
+import axios, { AxiosInstance } from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent"; // Tambahkan baris ini
 
 const BASE_URL = "https://myim3app.indosatooredoo.com/api";
@@ -21,24 +27,18 @@ class MyIM3ApiClient {
   private client: AxiosInstance;
 
   constructor() {
-    // Definisikan agen proxy
     const proxyAgent = new HttpsProxyAgent('http://cawik123:cawik123@p.webshare.io:80');
 
     this.client = axios.create({
       baseURL: BASE_URL,
       headers: COMMON_HEADERS,
       timeout: 30000,
-      httpsAgent: proxyAgent, // Gunakan agen proxy HTTPS
-      proxy: false            // Matikan proxy bawaan axios
+      httpsAgent: proxyAgent,
+      proxy: false
     });
   }
-// ...
   
-import axios, { AxiosInstance } from "axios";
-
-const BASE_URL = "https://myim3app.indosatooredoo.com/api";
-const APP_VERSION = "82.17.0";
-const PLATFORM = "web";
+  // ... fungsi sendOtp biarkan seperti semula ...
 
 // Common headers used across all MyIM3 web app requests
 const COMMON_HEADERS = {
