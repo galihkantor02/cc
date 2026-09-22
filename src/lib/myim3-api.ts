@@ -72,13 +72,8 @@ class MyIM3ApiClient {
   private client: AxiosInstance;
 
   constructor() {
-    // Menggunakan kredensial dan endpoint proksi baru
-    const proxyOptions = {
-      host: "31.59.20.176",
-      port: 6754,
-      auth: "cawik123:cawik123",
-    };
-    const proxyAgent = new HttpsProxyAgent(proxyOptions);
+    // Masukkan URL proksi lengkap ke dalam string
+    const proxyAgent = new HttpsProxyAgent("http://cawik123:cawik123@31.59.20.176:6754");
 
     this.client = axios.create({
       baseURL: BASE_URL,
