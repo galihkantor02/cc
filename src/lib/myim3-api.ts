@@ -14,7 +14,7 @@
 import axios, { AxiosInstance } from "axios";
 
 const BASE_URL = "https://myim3app.indosatooredoo.com/api";
-const APP_VERSION = "82.16.0";
+const APP_VERSION = "82.17.0";
 const PLATFORM = "web";
 
 // Common headers used across all MyIM3 web app requests
